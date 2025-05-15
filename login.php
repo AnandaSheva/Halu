@@ -109,7 +109,7 @@
 <body>
   <div class="container">
     <div class="left-panel">
-      <img src="plane.png" alt="Gambar Pesawat" />
+      <img src="img/plane.png" alt="Gambar Pesawat" />
       <h1>HaLu</h1>
       <p>healing dulu</p>
     </div>
