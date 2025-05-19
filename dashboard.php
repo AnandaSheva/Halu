@@ -315,7 +315,6 @@
       <!-- Chart -->
       <section class="chart-section">
         <h3>Sales Statistics</h3>
-        <img src="stastistik.png" alt="Sales Chart" class="chart-img">
       </section>
     </main>
   </div>
