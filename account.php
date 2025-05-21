@@ -627,11 +627,12 @@ if (!isset($_SESSION['admin_id'])) {
                     <div class="popup-box confirm-dialog">
                       <div class="warning-icon">⚠️</div>
                       <h3>WARNING!</h3>
-                      <p>Are you sure you want to delete <b><?= $row['username'] ?></b>?</p>
+                      <p>Are you sure you want to delete <b><?= $row['name'] ?></b>?</p>
                       <div class="form-actions">
                         <label for="confirm-delete-<?= $row['id'] ?>" class="btn-cancel">Cancel</label>
                         <form method="post" action="delete.php" style="display:inline;">
                           <input type="hidden" name="id" value="<?= $row['id'] ?>">
+                          <input type="hidden" name="role" value="<?= $role ?>">
                           <button type="submit" class="btn-save">Confirm</button>
                         </form>
                       </div>

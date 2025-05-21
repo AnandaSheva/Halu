@@ -780,7 +780,7 @@ if ($result && mysqli_num_rows($result) > 0) {
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2 id="modalTitle">Add New Task</h2>
-            <form id="taskForm" method="post" action="task_process.php">
+            <form id="taskForm" method="post" action="add_task.php">
                 <input type="hidden" id="task_id" name="task_id" value="">
                 <input type="hidden" name="action" id="form_action" value="add">
                 
@@ -830,7 +830,7 @@ if ($result && mysqli_num_rows($result) > 0) {
             <p>Are you sure you want to delete this task? This action cannot be undone.</p>
             <div class="form-actions">
                 <button type="button" class="btn-cancel">Cancel</button>
-                <form method="post" action="task_process.php" id="deleteForm">
+                <form method="post" action="add_task.php" id="deleteForm">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" id="delete_task_id" name="task_id" value="">
                     <button type="submit" class="btn-delete">Delete</button>
@@ -942,7 +942,7 @@ if ($result && mysqli_num_rows($result) > 0) {
             statusGroup.style.display = 'block';
             
             // Fetch task data
-            fetch(`task_process.php?action=get_task&id=${taskId}`)
+            fetch(`add_task.php?action=get_task&id=${taskId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {

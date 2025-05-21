@@ -5,6 +5,20 @@ $query = mysqli_query($conn, "SELECT * FROM users WHERE id = '$id'");
 $data = mysqli_fetch_assoc($query);
 ?>
 
+<?php if (isset($_GET['status']) && $_GET['status'] == 'success'): ?>
+<script>
+  Swal.fire({
+    title: 'Success!',
+    text: '<?= $_GET['message'] ?? 'Details updated successfully' ?>',
+    icon: 'success',
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000
+  });
+</script>
+<?php endif; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,6 +88,7 @@ $data = mysqli_fetch_assoc($query);
       display: flex;
       align-items: center;
       gap: 10px;
+      position: relative;
     }
 
     .username {
@@ -91,6 +106,44 @@ $data = mysqli_fetch_assoc($query);
     .dropdown-icon {
       color: #0d6efd;
       font-size: 14px;
+    }
+
+.user-dropdown {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  min-width: 180px;
+  display: none;
+  z-index: 1001;
+}
+.user-dropdown.show {
+  display: block;
+}
+
+    .dropdown-item {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #212529;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+    }
+
+    .dropdown-item.logout {
+      color: #dc3545;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .dropdown-item.logout:hover {
+      background-color: #fff8f8;
     }
 
     /* Layout Structure */
@@ -218,6 +271,16 @@ $data = mysqli_fetch_assoc($query);
       font-size: 20px;
       cursor: pointer;
       text-decoration: none;
+      background: none;
+      border: none;
+      padding: 0;
+      margin-left: 10px;
+      vertical-align: middle;
+      transition: transform 0.1s;
+    }
+    .delete-icon:hover {
+      transform: scale(1.1);
+      background: none;
     }
 
     .info-group {
@@ -287,7 +350,104 @@ $data = mysqli_fetch_assoc($query);
         font-size: 14px;
       }
     }
+
+    .modal {
+      position: fixed;
+      z-index: 2000;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.25);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      animation: fadeIn .2s;
+    }
+    @keyframes fadeIn {
+      from { transform: translateY(-30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    // Toggle dropdown menu
+    const userInfoToggle = document.getElementById('userInfoToggle');
+    const userDropdown = document.getElementById('userDropdown');
+    userInfoToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      userDropdown.classList.toggle('show');
+    });
+    document.addEventListener('click', function() {
+      userDropdown.classList.remove('show');
+    });
+
+    // Logout with confirmation
+    document.getElementById('logoutBtn').addEventListener('click', function(e) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You will be logged out of your session",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, logout'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = 'logout.php';
+        }
+      });
+    });
+
+    // Delete with confirmation
+    document.getElementById('deleteBtn').addEventListener('click', function(e) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'Delete Account?',
+        text: "This action cannot be undone!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          document.getElementById('deleteForm').submit();
+        }
+      });
+    });
+
+    // Ganti script untuk icon edit Details
+    document.addEventListener('DOMContentLoaded', function() {
+      // Tambahkan id ke icon edit pada bagian Details 
+      const cards = document.querySelectorAll('.three-col-grid .card');
+      if (cards.length >= 2) {
+        // Cari card Details dengan mencari teks "Details" di heading
+        cards.forEach(function(card) {
+          const heading = card.querySelector('h4');
+          if (heading && heading.textContent === 'Details') {
+            const editIcon = card.querySelector('.edit-icon');
+            if (editIcon) {
+              editIcon.id = 'editDetailsBtn';
+              editIcon.addEventListener('click', function() {
+                document.getElementById('editDetailsModal').style.display = 'flex';
+              });
+            }
+          }
+        });
+      }
+      
+      // Pastikan event listener untuk menutup modal sudah ada
+      document.getElementById('closeEditDetails').addEventListener('click', function() {
+        document.getElementById('editDetailsModal').style.display = 'none';
+      });
+      
+      document.getElementById('cancelEditDetails').addEventListener('click', function() {
+        document.getElementById('editDetailsModal').style.display = 'none';
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- Header -->
@@ -298,10 +458,21 @@ $data = mysqli_fetch_assoc($query);
     </div>
     <div class="right">
       <div class="notification-icon">🔔</div>
-      <div class="user-info">
+      <div class="user-info" id="userInfoToggle" style="cursor:pointer;">
         <span class="username">Admin123</span>
         <div class="avatar"></div>
         <span class="dropdown-icon">▼</span>
+        <!-- User Dropdown Menu -->
+        <div class="user-dropdown" id="userDropdown">
+          <a href="#" class="dropdown-item">
+            <svg ...></svg>
+            Profile
+          </a>
+          <a href="#" class="dropdown-item logout" id="logoutBtn">
+            <svg ...></svg>
+            Logout
+          </a>
+        </div>
       </div>
     </div>
   </header>
@@ -327,7 +498,7 @@ $data = mysqli_fetch_assoc($query);
         <li class="<?= $currentPage == 'task.php' ? 'active' : '' ?>">
           <a href="task.php">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <path d="M16 4h2a2 2 0 0 1-2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1-2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
               <path d="M9 14l2 2 4-4"></path>
             </svg>
@@ -370,7 +541,18 @@ $data = mysqli_fetch_assoc($query);
     <div class="main-content">
       <div class="header">
         <h2>Account Info</h2>
-        <a href="delete.php?id=<?= $data['id'] ?>" onclick="return confirm('Are you sure?')" class="delete-icon">🗑️</a>
+        <button class="delete-icon" id="deleteBtn" title="Delete">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1-2-2h2a2 2 0 0 1-2 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/>
+            <line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+        </button>
+        <form id="deleteForm" method="post" action="delete.php" style="display:none;">
+          <input type="hidden" name="id" value="<?= $data['id'] ?>">
+          <input type="hidden" name="role" value="<?= $_GET['role'] ?? 'Customers' ?>">
+        </form>
       </div>
 
       <!-- 3 Column Layout -->
@@ -379,7 +561,7 @@ $data = mysqli_fetch_assoc($query);
         <div class="card">
           <span class="edit-icon">✏️</span>
           <div class="profile-img"></div>
-          <h3><?= $data['username'] ?></h3>
+          <h3><?= $data['name'] ?></h3>
           <p>📍 <?= $data['address'] ?? 'Unknown' ?></p>
           <p>📧 <?= $data['email'] ?></p>
           <p>📞 <?= $data['phone'] ?? '-' ?></p>
@@ -399,9 +581,31 @@ $data = mysqli_fetch_assoc($query);
 
           <!-- Card 2 Bawah -->
           <div class="card">
-            <span class="edit-icon">✏️</span>
             <h4>Other Information</h4>
-            <p><?= $data['other_info'] ?? 'None' ?></p>
+            <div class="info-group">
+              <span class="info-label">Account Status:</span>
+              <?php 
+                $statusClass = '';
+                if($data['status'] == 'verified') {
+                  $statusClass = 'background-color: #3cd278; color: white;';
+                } elseif($data['status'] == 'pending') {
+                  $statusClass = 'background-color: #f0c04f; color: white;';
+                } elseif($data['status'] == 'rejected') {
+                  $statusClass = 'background-color: #f16a6a; color: white;';
+                }
+              ?>
+              <span style="padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold; <?= $statusClass ?>">
+                <?= ucfirst($data['status']) ?>
+              </span>
+            </div>
+            
+            <?php if($data['status'] == 'pending'): ?>
+              <div style="margin-top: 15px;">
+                <button id="verifyAccountBtn" style="background-color: #3cd278; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
+                  Verify Account
+                </button>
+              </div>
+            <?php endif; ?>
           </div>
         </div>
 
@@ -414,7 +618,7 @@ $data = mysqli_fetch_assoc($query);
           <?php } ?>
           <div class="info-group"><span class="info-label">Card Type:</span> Indonesian Identity Card</div>
           <div class="info-group"><span class="info-label">NIK:</span> <?= $data['nik'] ?? '-' ?></div>
-          <div class="info-group"><span class="info-label">Name:</span> <?= $data['username'] ?></div>
+          <div class="info-group"><span class="info-label">Name:</span> <?= $data['name'] ?></div>
           <div class="info-group"><span class="info-label">Expire Date:</span> <?= $data['id_expiry'] ?? '-' ?></div>
           <div class="info-group"><span class="info-label">Nationality:</span> <?= $data['nationality'] ?? '-' ?></div>
         </div>
@@ -436,5 +640,103 @@ $data = mysqli_fetch_assoc($query);
       </button>
     </div>
   </div>
+
+  <!-- Modal Edit Details -->
+  <div id="editDetailsModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:400px; margin:auto; background:#fff; border-radius:10px; padding:30px; box-shadow:0 4px 20px rgba(0,0,0,0.15); position:relative;">
+      <span class="close-modal" id="closeEditDetails" style="position:absolute;top:15px;right:20px;cursor:pointer;font-size:22px;">&times;</span>
+      <h3>Edit Details</h3>
+      <form id="editDetailsForm" method="post" action="edit_details.php">
+        <input type="hidden" name="id" value="<?= $data['id'] ?>">
+        <div class="form-group" style="margin-bottom:15px;">
+          <label>First Name</label>
+          <input type="text" name="first_name" value="<?= htmlspecialchars($data['first_name'] ?? '') ?>" required style="width:100%;padding:8px;">
+        </div>
+        <div class="form-group" style="margin-bottom:15px;">
+          <label>Last Name</label>
+          <input type="text" name="last_name" value="<?= htmlspecialchars($data['last_name'] ?? '') ?>" required style="width:100%;padding:8px;">
+        </div>
+        <div class="form-group" style="margin-bottom:15px;">
+          <label>Date of Birth</label>
+          <input type="date" name="dob" value="<?= htmlspecialchars($data['dob'] ?? '') ?>" required style="width:100%;padding:8px;">
+        </div>
+        <div class="form-group" style="margin-bottom:20px;">
+          <label>Gender</label>
+          <select name="gender" required style="width:100%;padding:8px;">
+            <option value="">-- Select --</option>
+            <option value="Male" <?= (isset($data['gender']) && $data['gender']=='Male') ? 'selected' : '' ?>>Male</option>
+            <option value="Female" <?= (isset($data['gender']) && $data['gender']=='Female') ? 'selected' : '' ?>>Female</option>
+          </select>
+        </div>
+        <div style="text-align:right;">
+          <button type="button" id="cancelEditDetails" style="margin-right:10px;padding:8px 18px;">Cancel</button>
+          <button type="submit" style="background:#0d6efd;color:#fff;padding:8px 18px;border:none;border-radius:4px;">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add this script at the bottom of the page, before the closing </body> tag -->
+  <script>
+    // Verify account functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const verifyBtn = document.getElementById('verifyAccountBtn');
+      
+      if(verifyBtn) {
+        verifyBtn.addEventListener('click', function() {
+          Swal.fire({
+            title: 'Verify Account',
+            text: "Are you sure you want to verify this account?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3cd278',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, verify it!'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Send AJAX request to update status
+              fetch('verify_account.php', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id=<?= $data['id'] ?>'
+              })
+              .then(response => response.json())
+              .then(data => {
+                if(data.success) {
+                  Swal.fire({
+                    title: 'Success!',
+                    text: 'Account has been verified successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                  }).then(() => {
+                    // Reload the page to show updated status
+                    window.location.reload();
+                  });
+                } else {
+                  Swal.fire({
+                    title: 'Error!',
+                    text: data.message || 'Failed to verify account.',
+                    icon: 'error'
+                  });
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                  title: 'Error!',
+                  text: 'An unexpected error occurred.',
+                  icon: 'error'
+                });
+              });
+            }
+          });
+        });
+      }
+    });
+  </script>
 </body>
 </html>
