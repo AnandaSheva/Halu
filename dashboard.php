@@ -1,8 +1,25 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+// Check if this is a new login session
+$showLoginSuccess = false;
+if (isset($_SESSION['login_success']) && $_SESSION['login_success'] === true) {
+    $showLoginSuccess = true;
+    // Reset the flag so the message only shows once
+    $_SESSION['login_success'] = false;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard</title>
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
     /* Global Styles */
     * {
@@ -67,6 +84,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      position: relative;
+      cursor: pointer;
     }
 
     .username {
@@ -84,6 +103,46 @@
     .dropdown-icon {
       color: #0d6efd;
       font-size: 14px;
+    }
+    
+    /* User Dropdown Menu */
+    .user-dropdown {
+      position: absolute;
+      top: 45px;
+      right: 0;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      min-width: 180px;
+      display: none;
+      z-index: 1001;
+    }
+    
+    .user-dropdown.show {
+      display: block;
+    }
+    
+    .dropdown-item {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #212529;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .dropdown-item.logout {
+      color: #dc3545;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .dropdown-item.logout:hover {
+      background-color: #fff8f8;
     }
 
     /* Layout Structure */
@@ -214,6 +273,8 @@
       }
     }
   </style>
+  <!-- SweetAlert2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
   <!-- Header -->
@@ -224,10 +285,29 @@
     </div>
     <div class="right">
       <div class="notification-icon">🔔</div>
-      <div class="user-info">
-        <span class="username">Admin123</span>
+      <div class="user-info" id="userInfoToggle">
+        <span class="username"><?= htmlspecialchars($_SESSION['admin_name']) ?></span>
         <div class="avatar"></div>
         <span class="dropdown-icon">▼</span>
+        
+        <!-- User Dropdown Menu -->
+        <div class="user-dropdown" id="userDropdown">
+          <a href="#" class="dropdown-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Profile
+          </a>
+          <a href="#" class="dropdown-item logout" id="logoutBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </a>
+        </div>
       </div>
     </div>
   </header>
@@ -250,16 +330,16 @@
             Dashboard
           </a>
         </li>
-        <li class="<?= $currentPage == 'task.php' ? 'active' : '' ?>">
-          <a href="task.php">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-              <path d="M9 14l2 2 4-4"></path>
-            </svg>
-            Task
-          </a>
-        </li>
+                <li class="<?= $currentPage == 'task.php' ? 'active' : '' ?>">
+                    <a href="task.php">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                            <path d="M9 14l2 2 4-4"></path>
+                        </svg>
+                        Task
+                    </a>
+                </li>
         <li class="<?= $currentPage == 'account.php' ? 'active' : '' ?>">
           <a href="account.php">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -318,5 +398,54 @@
       </section>
     </main>
   </div>
+
+  <script>
+    // Show login success message if it's a new login
+    <?php if ($showLoginSuccess): ?>
+    Swal.fire({
+      title: 'Berhasil Login',
+      text: 'Selamat datang kembali, <?= htmlspecialchars($_SESSION['admin_name']) ?>',
+      icon: 'success',
+      timer: 3000,
+      timerProgressBar: true,
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false
+    });
+    <?php endif; ?>
+    
+    // Toggle dropdown menu
+    const userInfoToggle = document.getElementById('userInfoToggle');
+    const userDropdown = document.getElementById('userDropdown');
+    
+    userInfoToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      userDropdown.classList.toggle('show');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function() {
+      userDropdown.classList.remove('show');
+    });
+    
+    // Logout with confirmation
+    document.getElementById('logoutBtn').addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You will be logged out of your session",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, logout'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = 'logout.php';
+        }
+      });
+    });
+  </script>
 </body>
 </html>

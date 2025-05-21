@@ -1,13 +1,33 @@
 <?php
+session_start(); // Add session start
 include 'koneksi.php';
+
+// Redirect if not logged in
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+// Get tasks from database
+$admin_id = $_SESSION['admin_id'];
+$sql = "SELECT * FROM tasks WHERE created_by = $admin_id ORDER BY due_date ASC, due_time ASC";
+$result = mysqli_query($conn, $sql);
+$tasks = [];
+if ($result && mysqli_num_rows($result) > 0) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $tasks[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Task Management</title>
+    <title>Task Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
         /* Global Styles */
         * {
@@ -21,6 +41,203 @@ include 'koneksi.php';
             background: #f8f9fa;
             color: #212529;
         }
+        /* Alert Styles */
+.alert {
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+        /* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    margin: auto;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    width: 500px;
+    max-width: 90%;
+    position: relative;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.close-modal:hover {
+    color: #212529;
+}
+
+.modal h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #212529;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #0d6efd;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13,110,253,0.25);
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-group.half {
+    width: 50%;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.btn-submit {
+    background-color: #0d6efd;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+    background-color: #0b5ed7;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #5c636a;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+.delete-confirm {
+    text-align: center;
+    max-width: 400px;
+}
+
+.delete-confirm p {
+    margin-bottom: 20px;
+    color: #495057;
+}
+
+.delete-confirm .form-actions {
+    justify-content: center;
+}
+
+/* Task status styles */
+.task-status {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.status-pending {
+    background-color: #ffc10726;
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
+.status-completed {
+    background-color: #28a7451a;
+    color: #28a745;
+    border: 1px solid #28a745;
+}
+
+.status-cancelled {
+    background-color: #6c757d1a;
+    color: #6c757d;
+    border: 1px solid #6c757d;
+}
         
         /* Topbar Styles */
         .topbar {
@@ -61,6 +278,7 @@ include 'koneksi.php';
             display: flex;
             align-items: center;
             gap: 20px;
+            position: relative;
         }
 
         .notification-icon {
@@ -72,6 +290,7 @@ include 'koneksi.php';
             display: flex;
             align-items: center;
             gap: 10px;
+            cursor: pointer;
         }
 
         .username {
@@ -89,6 +308,46 @@ include 'koneksi.php';
         .dropdown-icon {
             color: #0d6efd;
             font-size: 14px;
+        }
+
+        /* User Dropdown Menu Styles */
+        .user-dropdown {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 180px;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .user-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #212529;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dropdown-item.logout {
+            color: #dc3545;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .dropdown-item.logout:hover {
+            background-color: #fff8f8;
         }
         
         /* Layout Structure */
@@ -166,13 +425,14 @@ include 'koneksi.php';
             border: none;
             padding: 10px 20px;
             border-radius: 5px;
-            float: right;
             cursor: pointer;
             display: flex;
             align-items: center;
             font-size: 14px;
             font-weight: 500;
             transition: all 0.2s ease;
+            margin-bottom: 0; /* margin bawah tidak perlu lagi */
+            float: none; /* Hapus float: right; */
         }
         
         .add-task-btn:hover {
@@ -319,6 +579,13 @@ include 'koneksi.php';
             font-weight: bold;
         }
         
+        .task-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px; /* jarak ke bawah */
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 992px) {
             .task-card {
@@ -340,6 +607,8 @@ include 'koneksi.php';
             }
         }
     </style>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <!-- Header -->
@@ -350,10 +619,29 @@ include 'koneksi.php';
         </div>
         <div class="right">
             <div class="notification-icon">🔔</div>
-            <div class="user-info">
-                <span class="username">Admin123</span>
+            <div class="user-info" id="userInfoToggle">
+                <span class="username"><?= htmlspecialchars($_SESSION['admin_name']) ?></span>
                 <div class="avatar"></div>
                 <span class="dropdown-icon">▼</span>
+                
+                <!-- User Dropdown Menu -->
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="#" class="dropdown-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Profile
+                    </a>
+                    <a href="#" class="dropdown-item logout" id="logoutBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Logout
+                    </a>
+                </div>
             </div>
         </div>
     </header>
@@ -421,113 +709,293 @@ include 'koneksi.php';
         
         <!-- Main Content -->
         <div class="main-content">
-            <h1 class="page-title">All Tasks</h1>
-            <button class="add-task-btn">
-                <i class="fas fa-plus"></i>
-                Add New Task
-            </button>
+            <div class="task-header">
+                <h1 class="page-title">All Tasks</h1>
+                <button class="add-task-btn" id="addTaskBtn" type="button">
+                    <i class="fas fa-plus"></i>
+                    Add New Task
+                </button>
+            </div>
+            
+            <!-- Display notification message if any -->
+            <?php if (isset($_SESSION['task_message'])): ?>
+                <div class="alert alert-<?= $_SESSION['task_message']['type'] ?>">
+                    <?= $_SESSION['task_message']['text'] ?>
+                </div>
+                <?php unset($_SESSION['task_message']); ?>
+            <?php endif; ?>
             
             <!-- Tasks Container -->
             <div class="tasks-container">
-                <!-- Task Card 1 -->
-                <div class="task-card">
-                    <h2 class="task-title">Meeting With Boss</h2>
-                    <div class="task-countdown">2 DAYS, 3 HOURS, 2 MINUTES, 20 SECONDS</div>
-                    <p class="task-description">Membahas tentang statistik penjualan</p>
-                    <div class="task-meta">Due date: 30 November, 2025</div>
-                    <div class="task-meta">Time: 07.00 AM</div>
-                    <div class="task-actions">
-                        <div class="task-action-btn edit-btn">
-                            <i class="fas fa-pencil-alt"></i>
+                <?php if (count($tasks) > 0): ?>
+                    <?php foreach ($tasks as $task): ?>
+                        <?php 
+                            // Calculate countdown
+                            $now = new DateTime();
+                            $dueDateTime = new DateTime($task['due_date'] . ' ' . $task['due_time']);
+                            $interval = $now->diff($dueDateTime);
+                            
+                            $countdown = '';
+                            if ($dueDateTime < $now) {
+                                $countdown = "OVERDUE";
+                            } else {
+                                if ($interval->days > 0) {
+                                    $countdown .= $interval->days . " DAYS, ";
+                                }
+                                $countdown .= $interval->h . " HOURS, ";
+                                $countdown .= $interval->i . " MINUTES";
+                            }
+                            
+                            $statusClass = "status-" . $task['status'];
+                        ?>
+                        <div class="task-card">
+                            <h2 class="task-title"><?= htmlspecialchars($task['title']) ?></h2>
+                            <div class="task-status <?= $statusClass ?>"><?= ucfirst($task['status']) ?></div>
+                            <div class="task-countdown"><?= $countdown ?></div>
+                            <p class="task-description"><?= htmlspecialchars($task['description']) ?></p>
+                            <div class="task-meta">Due date: <?= date('d F, Y', strtotime($task['due_date'])) ?></div>
+                            <div class="task-meta">Time: <?= date('h:i A', strtotime($task['due_time'])) ?></div>
+                            <div class="task-actions">
+                                <div class="task-action-btn edit-btn" data-id="<?= $task['id'] ?>">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </div>
+                                <div class="task-action-btn delete-btn" data-id="<?= $task['id'] ?>">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            </div>
                         </div>
-                        <div class="task-action-btn delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <!-- Empty Task Card -->
+                    <div class="task-card empty-task" id="emptyTaskCard">
+                        <i class="fas fa-plus"></i> Add New Task
                     </div>
-                </div>
-                
-                <!-- Task Card 2 -->
-                <div class="task-card">
-                    <h2 class="task-title">Meeting With Agent</h2>
-                    <div class="task-countdown">2 DAYS, 3 HOURS, 2 MINUTES, 20 SECONDS</div>
-                    <p class="task-description">Membahasaan tentang pembayaran</p>
-                    <div class="task-meta">Due date: 30 November, 2025</div>
-                    <div class="task-meta">Time: 07.00 AM</div>
-                    <div class="task-actions">
-                        <div class="task-action-btn edit-btn">
-                            <i class="fas fa-pencil-alt"></i>
-                        </div>
-                        <div class="task-action-btn delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Task Card 3 -->
-                <div class="task-card">
-                    <h2 class="task-title">Meeting With Boss</h2>
-                    <div class="task-countdown">2 DAYS, 3 HOURS, 2 MINUTES, 20 SECONDS</div>
-                    <p class="task-description">Membahas tentang pendapatan bulan ini</p>
-                    <div class="task-meta">Due date: 30 November, 2025</div>
-                    <div class="task-meta">Time: 07.00 AM</div>
-                    <div class="task-actions">
-                        <div class="task-action-btn edit-btn">
-                            <i class="fas fa-pencil-alt"></i>
-                        </div>
-                        <div class="task-action-btn delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Task Card 4 -->
-                <div class="task-card">
-                    <h2 class="task-title">Meeting With Boss</h2>
-                    <div class="task-countdown">2 DAYS, 3 HOURS, 2 MINUTES, 20 SECONDS</div>
-                    <p class="task-description">Membahas tentang statistik penjualan</p>
-                    <div class="task-meta">Due date: 30 November, 2025</div>
-                    <div class="task-meta">Time: 07.00 AM</div>
-                    <div class="task-actions">
-                        <div class="task-action-btn edit-btn">
-                            <i class="fas fa-pencil-alt"></i>
-                        </div>
-                        <div class="task-action-btn delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Task Card 5 -->
-                <div class="task-card">
-                    <h2 class="task-title">Meeting With Agent</h2>
-                    <div class="task-countdown">2 DAYS, 3 HOURS, 2 MINUTES, 20 SECONDS</div>
-                    <p class="task-description">Membahasaan tentang pembayaran</p>
-                    <div class="task-meta">Due date: 30 November, 2025</div>
-                    <div class="task-meta">Time: 07.00 AM</div>
-                    <div class="task-actions">
-                        <div class="task-action-btn edit-btn">
-                            <i class="fas fa-pencil-alt"></i>
-                        </div>
-                        <div class="task-action-btn delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Empty Task Card -->
-                <div class="task-card empty-task">
-                    Add New Task
-                </div>
-            </div>
-            
-            <!-- Pagination -->
-            <div class="pagination">
-                <div class="page-item active">1</div>
-                <div class="page-item">2</div>
-                <div class="page-item">3</div>
-                <div class="page-item next">»</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="taskModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="modalTitle">Add New Task</h2>
+            <form id="taskForm" method="post" action="task_process.php">
+                <input type="hidden" id="task_id" name="task_id" value="">
+                <input type="hidden" name="action" id="form_action" value="add">
+                
+                <div class="form-group">
+                    <label for="title">Title*</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="4"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label for="due_date">Due Date*</label>
+                        <input type="date" id="due_date" name="due_date" required>
+                    </div>
+                    
+                    <div class="form-group half">
+                        <label for="due_time">Due Time*</label>
+                        <input type="time" id="due_time" name="due_time" required>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="statusGroup" style="display: none;">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel">Cancel</button>
+                    <button type="submit" class="btn-submit">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content delete-confirm">
+            <h2>Delete Task</h2>
+            <p>Are you sure you want to delete this task? This action cannot be undone.</p>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel">Cancel</button>
+                <form method="post" action="task_process.php" id="deleteForm">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" id="delete_task_id" name="task_id" value="">
+                    <button type="submit" class="btn-delete">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add JavaScript at the end of the body -->
+    <script>
+        // Toggle dropdown menu
+        const userInfoToggle = document.getElementById('userInfoToggle');
+        const userDropdown = document.getElementById('userDropdown');
+        
+        userInfoToggle.addEventListener('click', function(e) {
+          e.stopPropagation();
+          userDropdown.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+          userDropdown.classList.remove('show');
+        });
+        
+        // Logout with confirmation
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          Swal.fire({
+            title: 'Are you sure?',
+            text: "You will be logged out of your session",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, logout'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              window.location.href = 'logout.php';
+            }
+          });
+        });
+
+        // Get DOM elements
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const emptyTaskCard = document.getElementById('emptyTaskCard');
+        const taskModal = document.getElementById('taskModal');
+        const deleteModal = document.getElementById('deleteModal');
+        const closeModal = document.querySelector('.close-modal');
+        const cancelBtns = document.querySelectorAll('.btn-cancel');
+        const taskForm = document.getElementById('taskForm');
+        const modalTitle = document.getElementById('modalTitle');
+        const formAction = document.getElementById('form_action');
+        const taskIdField = document.getElementById('task_id');
+        const deleteTaskIdField = document.getElementById('delete_task_id');
+        const statusGroup = document.getElementById('statusGroup');
+        
+        // Set default due date to today
+        document.getElementById('due_date').valueAsDate = new Date();
+        
+        // Add event listeners
+        addTaskBtn.addEventListener('click', openAddTaskModal);
+        if (emptyTaskCard) {
+            emptyTaskCard.addEventListener('click', openAddTaskModal);
+        }
+        
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-id');
+                openEditTaskModal(taskId);
+            });
+        });
+        
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-id');
+                openDeleteModal(taskId);
+            });
+        });
+        
+        closeModal.addEventListener('click', closeModals);
+        cancelBtns.forEach(btn => {
+            btn.addEventListener('click', closeModals);
+        });
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === taskModal) {
+                closeModals();
+            }
+            if (event.target === deleteModal) {
+                closeModals();
+            }
+        });
+        
+        // Functions
+        function openAddTaskModal() {
+            modalTitle.textContent = 'Add New Task';
+            formAction.value = 'add';
+            statusGroup.style.display = 'none';
+            taskForm.reset();
+            document.getElementById('due_date').valueAsDate = new Date();
+            taskModal.style.display = 'flex';
+        }
+        
+        function openEditTaskModal(taskId) {
+            modalTitle.textContent = 'Edit Task';
+            formAction.value = 'edit';
+            statusGroup.style.display = 'block';
+            
+            // Fetch task data
+            fetch(`task_process.php?action=get_task&id=${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const task = data.data;
+                        taskIdField.value = task.id;
+                        document.getElementById('title').value = task.title;
+                        document.getElementById('description').value = task.description;
+                        document.getElementById('due_date').value = task.due_date;
+                        document.getElementById('due_time').value = task.due_time;
+                        document.getElementById('status').value = task.status;
+                        taskModal.style.display = 'flex';
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message || 'Could not load task data',
+                            icon: 'error'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'An error occurred while fetching task data',
+                        icon: 'error'
+                    });
+                });
+        }
+        
+        function openDeleteModal(taskId) {
+            deleteTaskIdField.value = taskId;
+            deleteModal.style.display = 'flex';
+        }
+        
+        function closeModals() {
+            taskModal.style.display = 'none';
+            deleteModal.style.display = 'none';
+        }
+        
+        // Add SweetAlert for notification messages
+        <?php if (isset($_SESSION['task_message'])): ?>
+        Swal.fire({
+            title: '<?= $_SESSION['task_message']['type'] === 'success' ? 'Success' : 'Error' ?>',
+            text: '<?= $_SESSION['task_message']['text'] ?>',
+            icon: '<?= $_SESSION['task_message']['type'] ?>',
+            timer: 3000,
+            timerProgressBar: true,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false
+        });
+        <?php unset($_SESSION['task_message']); ?>
+        <?php endif; ?>
+    </script>
 </body>
 </html>

@@ -1,9 +1,21 @@
-<?php include 'koneksi.php'; ?>
+<?php
+session_start(); // Add session start
+include 'koneksi.php';
+
+// Redirect if not logged in
+if (!isset($_SESSION['admin_id'])) {
+  header('Location: login.php');
+  exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Account Management</title>
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
     /* Global Styles */
     * {
@@ -57,6 +69,7 @@
       display: flex;
       align-items: center;
       gap: 20px;
+      position: relative;
     }
 
     .notification-icon {
@@ -68,6 +81,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      cursor: pointer;
     }
 
     .username {
@@ -87,11 +101,52 @@
       font-size: 14px;
     }
 
+    /* User Dropdown Menu Styles */
+    .user-dropdown {
+      position: absolute;
+      top: 45px;
+      right: 0;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      min-width: 180px;
+      display: none;
+      z-index: 1001;
+    }
+
+    .user-dropdown.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #212529;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+    }
+
+    .dropdown-item.logout {
+      color: #dc3545;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .dropdown-item.logout:hover {
+      background-color: #fff8f8;
+    }
+
     /* Layout Structure */
     .content-wrapper {
       display: flex;
       height: 100vh;
-      padding-top: 60px; /* Height of the topbar */
+      padding-top: 60px;
+      /* Height of the topbar */
     }
 
     /* Sidebar Styles */
@@ -257,7 +312,8 @@
       gap: 8px;
     }
 
-    .btn-edit, .btn-delete {
+    .btn-edit,
+    .btn-delete {
       width: 32px;
       height: 32px;
       display: flex;
@@ -319,7 +375,8 @@
       color: #495057;
     }
 
-    .form-group input, .form-group select {
+    .form-group input,
+    .form-group select {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid #ced4da;
@@ -371,25 +428,28 @@
       .sidebar {
         width: 200px;
       }
-      
+
       .main-content {
         margin-left: 200px;
       }
     }
-    
+
     /* Dynamic Display Rules for Each Popup */
     <?php
     $query = mysqli_query($conn, "SELECT id FROM users");
     while ($row = mysqli_fetch_assoc($query)) {
-        echo "#confirm-delete-{$row['id']}:checked ~ .popup-overlay-{$row['id']} { display: flex; }\n";
+      echo "#confirm-delete-{$row['id']}:checked ~ .popup-overlay-{$row['id']} { display: flex; }\n";
     }
     ?>
-    
-    #add-user-toggle:checked ~ .popup-add-user {
+
+    #add-user-toggle:checked~.popup-add-user {
       display: flex;
     }
   </style>
+  <!-- SweetAlert2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
+
 <body>
   <header class="topbar">
     <div class="logo-section">
@@ -398,10 +458,31 @@
     </div>
     <div class="right">
       <div class="notification-icon">🔔</div>
-      <div class="user-info">
-        <span class="username">Admin123</span>
+      <div class="user-info" id="userInfoToggle">
+        <span class="username"><?= htmlspecialchars($_SESSION['admin_name']) ?></span>
         <div class="avatar"></div>
         <span class="dropdown-icon">▼</span>
+
+        <!-- User Dropdown Menu -->
+        <div class="user-dropdown" id="userDropdown">
+          <a href="#" class="dropdown-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Profile
+          </a>
+          <a href="#" class="dropdown-item logout" id="logoutBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </a>
+        </div>
       </div>
     </div>
   </header>
@@ -415,7 +496,8 @@
       <ul class="nav">
         <li class="<?= $currentPage == 'dashboard.php' ? 'active' : '' ?>">
           <a href="dashboard.php">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="9"></rect>
               <rect x="14" y="3" width="7" height="5"></rect>
               <rect x="14" y="12" width="7" height="9"></rect>
@@ -426,7 +508,8 @@
         </li>
         <li class="<?= $currentPage == 'task.php' ? 'active' : '' ?>">
           <a href="task.php">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
               <path d="M9 14l2 2 4-4"></path>
@@ -436,7 +519,8 @@
         </li>
         <li class="<?= $currentPage == 'account.php' ? 'active' : '' ?>">
           <a href="account.php">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
@@ -445,7 +529,8 @@
         </li>
         <li class="<?= $currentPage == 'transaksi.php' ? 'active' : '' ?>">
           <a href="transaksi.php">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
             </svg>
@@ -454,7 +539,8 @@
         </li>
         <li class="<?= $currentPage == 'calendar.php' ? 'active' : '' ?>">
           <a href="calendar.php">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
               <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -477,6 +563,13 @@
       <div class="tabs">
         <?php
         $role = isset($_GET['role']) ? $_GET['role'] : 'Customers';
+
+        // Mapping role dari URL ke database
+        $db_role = $role;
+        if ($role === 'Customers')
+          $db_role = 'user';
+        if ($role === 'Sellers')
+          $db_role = 'provider';
         ?>
         <a href="?role=Customers" class="<?= $role == 'Customers' ? 'active' : '' ?>">Customers</a>
         <a href="?role=Sellers" class="<?= $role == 'Sellers' ? 'active' : '' ?>">Sellers</a>
@@ -484,12 +577,12 @@
 
       <?php
       // Count users query
-      $countQuery = mysqli_query($conn, "SELECT COUNT(*) as total FROM users WHERE role='$role'");
+      $countQuery = mysqli_query($conn, "SELECT COUNT(*) as total FROM users WHERE role='$db_role'");
       $countResult = mysqli_fetch_assoc($countQuery);
       $totalUsers = $countResult['total'];
 
       // Fetch users query
-      $query = mysqli_query($conn, "SELECT * FROM users WHERE role='$role'");
+      $query = mysqli_query($conn, "SELECT * FROM users WHERE role='$db_role'");
       ?>
 
       <div class="user-count"><?= $totalUsers ?> Users</div>
@@ -513,7 +606,7 @@
           <?php while ($row = mysqli_fetch_assoc($query)) { ?>
             <tr>
               <td><?= $row['id'] ?></td>
-              <td><?= $row['username'] ?></td>
+              <td><?= isset($row['username']) ? $row['username'] : $row['name'] ?></td>
               <td><?= $row['role'] ?></td>
               <td><?= $row['email'] ?></td>
               <?php if ($role === 'Sellers') { ?>
@@ -528,7 +621,7 @@
                   <a href="edit.php?id=<?= $row['id'] ?>" class="btn-edit">✏️</a>
                   <input type="checkbox" id="confirm-delete-<?= $row['id'] ?>" hidden>
                   <label for="confirm-delete-<?= $row['id'] ?>" class="btn-delete">🗑️</label>
-                  
+
                   <!-- Delete confirmation popup -->
                   <div class="popup-overlay popup-overlay-<?= $row['id'] ?>">
                     <div class="popup-box confirm-dialog">
@@ -555,35 +648,34 @@
       <input type="checkbox" id="add-user-toggle" hidden>
       <div class="popup-overlay popup-add-user">
         <div class="popup-box">
-          <h3>Add New <?= $role === 'Sellers' ? 'Seller' : 'Customer' ?></h3>
+          <h3>Add New Member</h3>
           <form action="add_user.php" method="post">
-            <input type="hidden" name="role" value="<?= $role ?>">
-            
+            <div class="form-group">
+              <label for="role">Role</label>
+              <select id="role" name="role" required onchange="toggleSellerFields(this.value)">
+                <option value="Customers">Customers</option>
+                <option value="Sellers">Sellers</option>
+              </select>
+            </div>
             <div class="form-group">
               <label for="username">Username</label>
               <input type="text" id="username" name="username" required>
             </div>
-            
             <div class="form-group">
               <label for="email">Email</label>
               <input type="email" id="email" name="email" required>
             </div>
-            
-            <?php if ($role === 'Sellers') { ?>
-              <div class="form-group">
-                <label for="status">Status</label>
-                <select id="status" name="status" required>
-                  <option value="Verified">Verified</option>
-                  <option value="Unverified">Unverified</option>
-                </select>
-              </div>
-            <?php } else { ?>
-              <div class="form-group">
-                <label for="phone">Phone Number</label>
-                <input type="text" id="phone" name="phone" required>
-              </div>
-            <?php } ?>
-            
+            <div class="form-group" id="status-group" style="display:none;">
+              <label for="status">Status</label>
+              <select id="status" name="status">
+                <option value="Verified">Verified</option>
+                <option value="Unverified">Unverified</option>
+              </select>
+            </div>
+            <div class="form-group" id="phone-group">
+              <label for="phone">Phone Number</label>
+              <input type="number" id="phone" name="phone">
+            </div>
             <div class="form-actions">
               <label for="add-user-toggle" class="btn-cancel">Cancel</label>
               <button type="submit" class="btn-save">Save</button>
@@ -591,7 +683,63 @@
           </form>
         </div>
       </div>
+      <script>
+        function toggleSellerFields(role) {
+          if (role === 'Sellers') {
+            document.getElementById('status-group').style.display = '';
+            document.getElementById('phone-group').style.display = 'none';
+            document.getElementById('phone').required = false;
+            document.getElementById('status').required = true;
+          } else {
+            document.getElementById('status-group').style.display = 'none';
+            document.getElementById('phone-group').style.display = '';
+            document.getElementById('phone').required = true;
+            document.getElementById('status').required = false;
+          }
+        }
+        // Inisialisasi saat halaman load
+        document.addEventListener('DOMContentLoaded', function () {
+          toggleSellerFields(document.getElementById('role').value);
+        });
+      </script>
     </main>
   </div>
+
+  <!-- Add JavaScript at the end of the body -->
+  <script>
+    // Toggle dropdown menu
+    const userInfoToggle = document.getElementById('userInfoToggle');
+    const userDropdown = document.getElementById('userDropdown');
+
+    userInfoToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      userDropdown.classList.toggle('show');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function () {
+      userDropdown.classList.remove('show');
+    });
+
+    // Logout with confirmation
+    document.getElementById('logoutBtn').addEventListener('click', function (e) {
+      e.preventDefault();
+
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "You will be logged out of your session",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, logout'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = 'logout.php';
+        }
+      });
+    });
+  </script>
 </body>
+
 </html>
