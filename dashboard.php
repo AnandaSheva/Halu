@@ -328,7 +328,7 @@ if (isset($_SESSION['login_success']) && $_SESSION['login_success'] === true) {
               <rect x="3" y="16" width="7" height="5"></rect>
             </svg>
             Dashboard
-          </a>
+          </a>wadwa
         </li>
                 <li class="<?= $currentPage == 'task.php' ? 'active' : '' ?>">
                     <a href="task.php">

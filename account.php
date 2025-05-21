@@ -455,7 +455,7 @@ if (!isset($_SESSION['admin_id'])) {
     <div class="logo-section">
       <div class="logo-icon"></div>
       <span class="logo-text">Admin Logo</span>
-    </div>
+    </div>ddd
     <div class="right">
       <div class="notification-icon">🔔</div>
       <div class="user-info" id="userInfoToggle">

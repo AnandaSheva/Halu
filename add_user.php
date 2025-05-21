@@ -9,7 +9,7 @@ $role = $_POST['role'];
 $db_role = $role;
 if ($role === 'Customers') $db_role = 'user';
 if ($role === 'Sellers') $db_role = 'provider';
-
+wadwda
 // Escape inputs
 $username = mysqli_real_escape_string($conn, $username);
 $email = mysqli_real_escape_string($conn, $email);
